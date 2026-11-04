@@ -18,7 +18,7 @@ $$
 
 Every factor is zero exactly where `x` is a multiple of `p`, so the product vanishes on every composite in range and stays non-zero on every prime. The program plots that curve and marks the primes it used under it.
 
-- **179 lines**, Python + `pygame`, **no math library**: prime generation, the product, the auto-scaling and the slider widget are all written by hand — `pygame` only opens the window and draws lines
+- **179 lines**, Python + `pygame`, **no math library**: the primes, the product and the auto-scaling are all computed inside this file — `pygame` only opens a window and draws lines
 - run it: `pip install pygame` then `python sieve/埃氏筛连续数学版本.py`
 - browser version: open `sieve/web/index.html` — no server, no build, works on a phone (sliders instead of drag handles)
 - every claim below has a `file:line` behind it: [docs/claims.md](docs/claims.md)
