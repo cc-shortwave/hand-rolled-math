@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>正弦乘积筛法 · Sine-Product Sieve</title>
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#12151d; --line:#232936; --fg:#e7ecf5; --dim:#8a94a8;
+    --cyan:#00dcff; --orange:#ff9626; --red:#c83232; --grid:#1b2130;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans','Noto Sans CJK SC',sans-serif;
+    padding:18px 16px 28px; -webkit-text-size-adjust:100%;
+  }
+  header{max-width:1180px;margin:0 auto 14px}
+  h1{font-size:19px;margin:0 0 6px;letter-spacing:.5px}
+  h1 small{color:var(--dim);font-weight:400;font-size:13px;margin-left:8px}
+  .formula{color:var(--cyan);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;
+    background:#0e1420;border:1px solid var(--line);border-radius:8px;padding:8px 12px;display:inline-block;margin:6px 0}
+  .note{color:var(--dim);font-size:12.5px;line-height:1.65;margin:8px 0 0;max-width:760px}
+  .wrap{max-width:1180px;margin:0 auto}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  canvas{width:100%;display:block;border-radius:8px;background:#080a0f;touch-action:pan-y}
+  .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px 20px;margin:12px 0}
+  .ctl label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--dim);margin-bottom:4px}
+  .ctl label b{color:var(--fg);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:#00dcff;height:22px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+  .chip{border:1px solid var(--line);background:#0e1420;color:var(--dim);border-radius:999px;
+    padding:5px 12px;font-size:12.5px;cursor:pointer;user-select:none}
+  .chip[aria-pressed=true]{color:#04121a;background:var(--cyan);border-color:var(--cyan);font-weight:600}
+  .stats{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:12.5px;color:var(--dim);margin-top:8px}
+  .stats b{color:var(--fg);font-variant-numeric:tabular-nums}
+  .warn{color:#ffb84d}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--dim);margin-top:10px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  footer{max-width:1180px;margin:16px auto 0;color:#5f6a7d;font-size:12px;line-height:1.7}
+  @media (max-width:520px){ h1{font-size:16px} .formula{font-size:12px} }
+</style>
+</head>
+<body>
+<header>
+  <h1>正弦乘积筛法 <small>Sine-Product Sieve · CC, 2026</small></h1>
+  <div class="formula">F(x) = &prod;<sub>p&le;p<sub>k</sub></sub> sin(&pi;x / p)</div>
+  <p class="note">
+    每个 <code>sin(&pi;x/p)</code> 在 <b>p 的倍数</b>处为零 —— 乘积把所有“被用到的素数的倍数”一起压成零。
+    这正是埃氏筛“划掉倍数”的连续版本：<b>零点集 = 被筛掉的那一堆</b>。
+  </p>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <canvas id="cv" height="420"></canvas>
+    <div class="controls">
+      <div class="ctl">
+        <label>素数个数 k <b id="vk">10</b></label>
+        <input id="k" type="range" min="1" max="45" value="10" step="1">
+      </div>
+      <div class="ctl">
+        <label>横轴上限 x <b id="vx">120</b></label>
+        <input id="xmax" type="range" min="20" max="600" value="120" step="10">
+      </div>
+      <div class="ctl">
+        <label>纵向增益（线性模式） <b id="vg">1.0×</b></label>
+        <input id="gain" type="range" min="0.2" max="3" value="1" step="0.1">
+      </div>
+    </div>
+    <div class="row">
+      <button class="chip" id="mLog"  aria-pressed="true">纵轴 log|F|</button>
+      <button class="chip" id="mLin"  aria-pressed="false">纵轴 线性</button>
+      <button class="chip" id="tPrime" aria-pressed="true">素数刻度</button>
+      <button class="chip" id="tZeros" aria-pressed="true">零点（筛掉的数）</button>
+    </div>
+    <div class="stats">
+      <span>用到 <b id="sPrimes">—</b></span>
+      <span>零点个数 <b id="sZeros">—</b></span>
+      <span>判对 <b id="sOk">—</b> / <b id="sTot">—</b></span>
+      <span id="sWarn" class="warn"></span>
+    </div>
+    <div class="legend">
+      <span><i style="background:#00dcff"></i>F(x)</span>
+      <span><i style="background:#ff9626"></i>素数</span>
+      <span><i style="background:#c83232"></i>合数</span>
+      <span><i style="background:#00dcff"></i>向下的尖刺 = F 归零 = 该整数被筛掉</span>
+      <span>底部色条：<i style="background:rgba(0,220,255,.5)"></i>筛掉 <i style="background:rgba(255,150,38,1)"></i>素数 <i style="background:rgba(200,50,50,.9)"></i>漏过的合数</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <b>为什么要有 log 模式：</b>F(x) 的幅值随 k 指数衰减（k=20 时 F(1)≈1e-17，k=45 时 ≈1e-58），
+  线性刻度下整条曲线会贴地看不出形状 —— 这不是公式错，是乘积本身的性质。
+  原程序用 <code>autoMaxAbs</code> 自动缩放来对抗它；换对数轴可以直接看清零点的位置。
+</footer>
+
+<script>
+(() => {
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const st = { k: 10, xmax: 120, log: true, prime: true, zeros: true, gain: 1 };
+  // 支持 #k=45&x=300&mode=lin 这样的链接，方便直接指向某个视图
+  (() => {
+    const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+    if (h.has('k')) st.k = Math.min(45, Math.max(1, +h.get('k')));
+    if (h.has('x')) st.xmax = Math.min(600, Math.max(20, +h.get('x')));
+    if (h.get('mode') === 'lin') st.log = false;
+    if (h.get('zeros') === '0') st.zeros = false;
+  })();
+
+  // ---------- 素数 ----------
+  function genPrimes(n){
+    const ps = [];
+    for (let c = 2; ps.length < n; c++){
+      let ok = true;
+      for (const p of ps){ if (p*p > c) break; if (c % p === 0){ ok = false; break; } }
+      if (ok) ps.push(c);
+    }
+    return ps;
+  }
+  const isPrime = n => { if (n < 2) return false; for (let d = 2; d*d <= n; d++) if (n % d === 0) return false; return true; };
+
+  // ---------- F(x)：用 log 累加，彻底避开下溢 ----------
+  // 返回 log10|F|；遇到零因子（|sin| 小于 1e-12，即整数倍）返回 -Infinity
+  const SIN_ZERO = 1e-12;
+  function log10F(x, ps){
+    let s = 0;
+    for (const p of ps){
+      const t = Math.abs(Math.sin(Math.PI * x / p));
+      if (t < SIN_ZERO) return -Infinity;   // 真零：x 是 p 的倍数
+      s += Math.log10(t);
+    }
+    return s;
+  }
+  // 整数 x 是否被用到的素数整除（精确零点判据，不受浮点影响）
+  const isZeroInt = (n, ps) => ps.some(p => n % p === 0);
+
+  function draw(){
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = cv.clientWidth || 900, cssH = cssW < 520 ? 320 : 440;
+    cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+    cv.style.height = cssH + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const ps = genPrimes(st.k);
+    const M = { l: 52, r: 16, t: 18, b: 84 };
+    const W = cssW - M.l - M.r, H = cssH - M.t - M.b;
+
+    // 采样：均匀网格 + 所有整数（整数必须精确采样，否则踩不到真正的零点）
+    const N = Math.max(600, Math.round(W * 2));
+    const raw = [];
+    for (let i = 0; i <= N; i++) raw.push(st.xmax * i / N);
+    for (let n = 0; n <= st.xmax; n++) raw.push(n);
+    raw.sort((a, b) => a - b);
+    const xs = [], ys = [];
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < raw.length; i++){
+      const x = raw[i];
+      if (i && Math.abs(x - xs[xs.length - 1]) < 1e-9) continue;
+      const v = log10F(x, ps);
+      xs.push(x); ys.push(v);
+      if (isFinite(v)){ if (v < lo) lo = v; if (v > hi) hi = v; }
+    }
+    if (!isFinite(lo)){ lo = -30; hi = 1; }
+    // 对数轴：把 -Infinity 画在底部之下
+    const pad = Math.max(2, (hi - lo) * 0.08);
+    const yTop = hi + pad, yBot = lo - pad;
+    const X = x => M.l + x / st.xmax * W;
+    const Ylog = v => M.t + (yTop - (isFinite(v) ? v : yBot)) / (yTop - yBot) * H;
+    const Ylin = v => {                       // 线性模式：|F| 归一化后取增益
+      const a = isFinite(v) ? Math.pow(10, v) : 0;
+      return M.t + H - Math.min(1, a * st.gain) * H * 0.94;
+    };
+    const Y = st.log ? Ylog : Ylin;
+
+    // 网格
+    ctx.strokeStyle = '#1b2130'; ctx.lineWidth = 1;
+    const gstep = Math.max(1, Math.round(st.xmax / 10));
+    for (let g = 0; g <= st.xmax; g += gstep){
+      const px = Math.round(X(g)) + .5;
+      ctx.beginPath(); ctx.moveTo(px, M.t); ctx.lineTo(px, M.t + H); ctx.stroke();
+    }
+    // 基线
+    ctx.strokeStyle = '#2b3242';
+    ctx.beginPath(); ctx.moveTo(M.l, M.t + H + .5); ctx.lineTo(M.l + W, M.t + H + .5); ctx.stroke();
+
+    // 曲线
+    ctx.strokeStyle = '#00dcff'; ctx.lineWidth = 1.6; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    let pen = false;
+    for (let i = 0; i < xs.length; i++){
+      const px = X(xs[i]), py = Y(ys[i]);
+      const clipped = py > M.t + H + 6;
+      if (clipped){ pen = false; continue; }
+      if (!pen){ ctx.moveTo(px, py); pen = true; } else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    // 精确零点：曲线上已经包含整数采样点，零点会自然落成一整根竖刺。
+    // 线性模式下零点不可见，单独在底部打标记。
+    if (!st.log && st.zeros){
+      ctx.fillStyle = 'rgba(0,220,255,.6)';
+      for (let n = 2; n <= st.xmax; n++){
+        if (!isZeroInt(n, ps)) continue;
+        ctx.fillRect(Math.round(X(n)) - 1, M.t + H - 12, 2, 8);
+      }
+    }
+
+    // ---- 底部筛子条：每个整数一格，颜色说明它被怎么处理 ----
+    {
+      const y0 = M.t + H + 8, hh = 12;
+      const cw = W / st.xmax;
+      for (let n = 2; n <= st.xmax; n++){
+        const x0 = X(n), x1 = X(n + 1) - X(n);
+        const z = isZeroInt(n, ps), pr = isPrime(n);
+        let col;
+        if (z) col = 'rgba(0,220,255,.30)';               // 被筛掉
+        else if (pr) col = 'rgba(255,150,38,.95)';        // 幸存且真是素数
+        else col = 'rgba(200,50,50,.75)';                 // 幸存但其实是合数（漏过）
+        ctx.fillStyle = col;
+        ctx.fillRect(x0 + (x1 > 3 ? 0.5 : 0), y0, Math.max(1, x1 - (x1 > 3 ? 1 : 0)), hh);
+      }
+      ctx.strokeStyle = '#2b3242';
+      ctx.strokeRect(M.l + .5, y0 + .5, W, hh);
+    }
+
+    // 整数刻度
+    const nice = v => { for (const s of [1,2,5,10,20,25,50,100]) if (v <= s) return s; return 200; };
+    const stepI = nice(st.xmax / Math.max(5, Math.floor(W / 46)));
+    for (let n = 0; n <= st.xmax; n += stepI){
+      const px = X(n);
+      const pr = isPrime(n), z = isZeroInt(n, ps) && n >= 2;
+      if (st.prime && pr){
+        ctx.fillStyle = '#ff9626';
+        ctx.fillRect(Math.round(px) - 1, M.t + H + 2, 2, 9);
+      } else if (z && st.zeros){
+        ctx.fillStyle = 'rgba(0,220,255,.55)';
+        ctx.fillRect(Math.round(px) - 1, M.t + H + 2, 2, 6);
+      }
+      if (n % stepI === 0){
+        ctx.fillStyle = '#6b7688'; ctx.font = '11px ui-monospace,Menlo,monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(String(n), px, M.t + H + 38);
+      }
+    }
+    // 轴标签
+    ctx.fillStyle = '#6b7688'; ctx.font = '11px ui-monospace,Menlo,monospace';
+    ctx.textAlign = 'right';
+    if (st.log){
+      const t1 = Math.ceil(yTop), b1 = Math.floor(yBot);
+      for (let v = b1; v <= t1; v += Math.max(1, Math.round((t1 - b1) / 5))){
+        const py = Ylog(v);
+        ctx.fillText('1e' + v, M.l - 8, py + 4);
+      }
+      ctx.save(); ctx.translate(14, M.t + H / 2); ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = 'center'; ctx.fillText('log₁₀ |F|', 0, 0); ctx.restore();
+    } else {
+      for (const f of [0, .25, .5, .75, 1]){
+        const y = M.t + H - f * H * 0.94;
+        ctx.fillText((f / st.gain).toFixed(2), M.l - 8, y + 4);
+      }
+      ctx.save(); ctx.translate(14, M.t + H / 2); ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = 'center'; ctx.fillText('|F| × gain', 0, 0); ctx.restore();
+    }
+
+    // ---------- 统计（只在 x > 最大已用素数 的范围内判，避免把"素数被自己筛掉"算成错） ----------
+    const pmax = ps[ps.length - 1];
+    let zeros = 0;
+    for (let n = 2; n <= st.xmax; n++) if (isZeroInt(n, ps)) zeros++;
+    let ok = 0, tot = 0, leaked = [];
+    for (let n = pmax + 1; n <= st.xmax; n++){
+      const survivor = !isZeroInt(n, ps);       // F≠0 ⇒ 没被任何已用素数整除
+      const real = isPrime(n);
+      tot++;
+      if (survivor === real) ok++;
+      else if (survivor && !real) leaked.push(n);   // 合数漏过去（因子全都 > pmax）
+    }
+    $('sPrimes').textContent = `${st.k} 个（最大 ${pmax}）`;
+    $('sZeros').textContent = zeros;
+    $('sOk').textContent = ok; $('sTot').textContent = tot;
+    $('sWarn').textContent = leaked.length
+      ? `合数漏过 ${leaked.length} 个（最小 ${leaked[0]} = ${leaked[0] === pmax*pmax ? pmax + '²' : '因子都 > ' + pmax}）`
+      : '这段范围内幸存者全是素数 ✓';
+  }
+
+  // ---------- 交互 ----------
+  $('k').addEventListener('input', e => { st.k = +e.target.value; $('vk').textContent = st.k; draw(); });
+  $('xmax').addEventListener('input', e => { st.xmax = +e.target.value; $('vx').textContent = st.xmax; draw(); });
+  $('gain').addEventListener('input', e => { st.gain = +e.target.value; $('vg').textContent = st.gain.toFixed(1) + '×'; draw(); });
+  const toggle = (id, key) => $(id).addEventListener('click', e => {
+    st[key] = !st[key]; e.currentTarget.setAttribute('aria-pressed', st[key]); draw();
+  });
+  $('mLog').addEventListener('click', () => { st.log = true; $('mLog').setAttribute('aria-pressed', true); $('mLin').setAttribute('aria-pressed', false); draw(); });
+  $('mLin').addEventListener('click', () => { st.log = false; $('mLin').setAttribute('aria-pressed', true); $('mLog').setAttribute('aria-pressed', false); draw(); });
+  toggle('tPrime', 'prime'); toggle('tZeros', 'zeros');
+  // 控件初始值跟随 hash
+  $('k').value = st.k; $('vk').textContent = st.k;
+  $('xmax').value = st.xmax; $('vx').textContent = st.xmax;
+  if (!st.log){ $('mLin').setAttribute('aria-pressed', true); $('mLog').setAttribute('aria-pressed', false); }
+  $('tZeros').setAttribute('aria-pressed', st.zeros);
+
+  addEventListener('resize', draw);
+  draw();
+})();
+</script>
+</body>
+</html>
