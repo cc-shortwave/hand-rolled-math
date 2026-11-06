@@ -27,7 +27,7 @@ The program plots that curve and marks the primes it used under it.
 
 **Where the idea came from** (his own account, as relayed by his father): while playing with the Riemann zeta function and reading how the 1/2-line (Riemann hypothesis) is used to predict primes, he noticed a `sin` sitting in there. Sine is periodic — one period, one gap — and a sieve needs exactly that: a way to knock out a number every period. So he gave each prime its own sine and multiplied them. The original quote, sentence by sentence, is in [docs/provenance.md](docs/provenance.md).
 
-**Known limitation, kept as written.** The loop breaks once the product falls below `1e-14` (`sieve/埃氏筛连续数学版本.py:37`). Past roughly 20 primes that happens near the left edge of the range, so the drawn curve flattens into a straight line on zero. The browser version accumulates `log|F|` instead of multiplying — same function, no underflow.
+**Not a logic error — a precision threshold.** The loop breaks once the product falls below `1e-14` (`sieve/埃氏筛连续数学版本.py:37`). The cutoff reads "below this, call it zero" — mathematically the zeros are still zeros, so the logic is fine; but with enough primes and `x` near the left edge of the range, the true value drops to the `1e-71` scale, and every one of those points gets treated as zero, so the curve collapses onto the axis. The browser version accumulates `log|F|` instead of multiplying: the same function, written so that stretch stays visible.
 
 **What it is and isn't.** The identity is not new: it is the multiplicative idea behind Euler's product for the zeta function, written continuously. Independently derived and implemented here; the honest claim is *derived and built*, not *discovered*.
 

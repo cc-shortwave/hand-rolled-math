@@ -16,6 +16,6 @@ pip install pygame
 python 埃氏筛连续数学版本.py
 ```
 
-Known limitation: the product loop breaks below `1e-14` (line 37), which flattens the curve once more than ~20 primes are used. The browser port sums logs instead.
+Not a logic error, a precision threshold: the loop breaks below `1e-14` (line 37), i.e. "below this, call it zero". With more than ~20 primes the true value drops to the `1e-71` scale near the left edge, gets treated as zero, and the curve flattens. The browser port sums logs instead, which keeps that stretch visible.
 
 Back to [README](../README.md) · claims with file:line → [docs/claims.md](../docs/claims.md)
