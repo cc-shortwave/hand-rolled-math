@@ -77,7 +77,7 @@
     </div>
     <div class="stats">
       <span>用到 <b id="sPrimes">—</b></span>
-      <span>零点个数 <b id="sZeros">—</b></span>
+      <span>筛掉的合数 <b id="sZeros">—</b></span>
       <span>判对 <b id="sOk">—</b> / <b id="sTot">—</b></span>
       <span id="sWarn" class="warn"></span>
     </div>
@@ -215,8 +215,8 @@
       const y0 = M.t + H + 8, hh = 12;
       const cw = W / st.xmax;
       for (let n = 2; n <= st.xmax; n++){
-        const x0 = X(n), x1 = X(n + 1) - X(n);
-        const z = isZeroInt(n, ps), pr = isPrime(n);
+        const x0 = X(n), x1 = Math.min(X(n + 1), M.l + W) - X(n);
+        const pr = isPrime(n), z = isZeroInt(n, ps) && !pr;   // 素数在列表里也会使 F=0，但它不是"被筛掉"
         let col;
         if (z) col = 'rgba(0,220,255,.30)';               // 被筛掉
         else if (pr) col = 'rgba(255,150,38,.95)';        // 幸存且真是素数
@@ -269,8 +269,8 @@
 
     // ---------- 统计（只在 x > 最大已用素数 的范围内判，避免把"素数被自己筛掉"算成错） ----------
     const pmax = ps[ps.length - 1];
-    let zeros = 0;
-    for (let n = 2; n <= st.xmax; n++) if (isZeroInt(n, ps)) zeros++;
+    let zeros = 0;                                   // 只数"被筛掉的合数"；列表里的素数自身也会让 F=0，不算进来
+    for (let n = 2; n <= st.xmax; n++) if (isZeroInt(n, ps) && !isPrime(n)) zeros++;
     let ok = 0, tot = 0, leaked = [];
     for (let n = pmax + 1; n <= st.xmax; n++){
       const survivor = !isZeroInt(n, ps);       // F≠0 ⇒ 没被任何已用素数整除
@@ -282,14 +282,20 @@
     $('sPrimes').textContent = `${st.k} 个（最大 ${pmax}）`;
     $('sZeros').textContent = zeros;
     $('sOk').textContent = ok; $('sTot').textContent = tot;
-    $('sWarn').textContent = leaked.length
-      ? `合数漏过 ${leaked.length} 个（最小 ${leaked[0]} = ${leaked[0] === pmax*pmax ? pmax + '²' : '因子都 > ' + pmax}）`
-      : '这段范围内幸存者全是素数 ✓';
+    $('sWarn').textContent = tot === 0
+      ? `x 上限比最大素数 ${pmax} 还短，这段没有可判的整数 —— 把 x 拉到 ${Math.min(600, pmax * 2)} 以上再看`
+      : (leaked.length
+          ? `合数漏过 ${leaked.length} 个（最小 ${leaked[0]}，因子都 > ${pmax}）`
+          : '这段范围内幸存者全是素数 ✓');
   }
 
   // ---------- 交互 ----------
-  $('k').addEventListener('input', e => { st.k = +e.target.value; $('vk').textContent = st.k; draw(); });
-  $('xmax').addEventListener('input', e => { st.xmax = +e.target.value; $('vx').textContent = st.xmax; draw(); });
+  function syncHash(){                       // 拖完滑杆地址栏跟着变，复制链接就能分享当前视图
+    try { history.replaceState(null, '', '#k=' + st.k + '&x=' + st.xmax + (st.log ? '' : '&mode=lin') + (st.zeros ? '' : '&zeros=0')); }
+    catch (e) { /* file:// 或被沙箱限制时忽略 */ }
+  }
+  $('k').addEventListener('input', e => { st.k = +e.target.value; $('vk').textContent = st.k; syncHash(); draw(); });
+  $('xmax').addEventListener('input', e => { st.xmax = +e.target.value; $('vx').textContent = st.xmax; syncHash(); draw(); });
   $('gain').addEventListener('input', e => { st.gain = +e.target.value; $('vg').textContent = st.gain.toFixed(1) + '×'; draw(); });
   const toggle = (id, key) => $(id).addEventListener('click', e => {
     st[key] = !st[key]; e.currentTarget.setAttribute('aria-pressed', st[key]); draw();
