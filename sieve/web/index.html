@@ -36,6 +36,7 @@
   .stats{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:12.5px;color:var(--dim);margin-top:8px}
   .stats b{color:var(--fg);font-variant-numeric:tabular-nums}
   .warn{color:#ffb84d}
+  .bound-hint{color:#ff8f8f;font-size:12px;margin-left:6px;opacity:.9}
   .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--dim);margin-top:10px}
   .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
   footer{max-width:1180px;margin:16px auto 0;color:#5f6a7d;font-size:12px;line-height:1.7}
@@ -57,7 +58,7 @@
     <canvas id="cv" height="420"></canvas>
     <div class="controls">
       <div class="ctl">
-        <label>素数个数 k <b id="vk">10</b></label>
+        <label>素数个数 k <b id="vk">10</b> <span id="vb" class="bound-hint">可判到 841</span></label>
         <input id="k" type="range" min="1" max="45" value="10" step="1">
       </div>
       <div class="ctl">
@@ -147,6 +148,9 @@
     ctx.clearRect(0, 0, cssW, cssH);
 
     const ps = genPrimes(st.k);
+    const pmax = ps[ps.length - 1], bound = pmax * pmax;   // 可判上界：x ≤ p_n² 时「F≠0 ⟺ 素数」才成立
+    const vbEl = $('vb');
+    if (vbEl) vbEl.textContent = '可判到 ' + bound;
     const M = { l: 52, r: 16, t: 18, b: 84 };
     const W = cssW - M.l - M.r, H = cssH - M.t - M.b;
 
@@ -188,6 +192,18 @@
     ctx.strokeStyle = '#2b3242';
     ctx.beginPath(); ctx.moveTo(M.l, M.t + H + .5); ctx.lineTo(M.l + W, M.t + H + .5); ctx.stroke();
 
+    // 可判边界：p² 右侧的曲线不再代表"是不是素数"，只代表"有没有被前 k 个素数整除"
+    if (bound < st.xmax){
+      const xb = X(bound);
+      ctx.fillStyle = 'rgba(255,90,90,.08)';
+      ctx.fillRect(xb, M.t, M.l + W - xb, H);
+      ctx.save();
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = 'rgba(255,120,120,.55)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(xb, M.t); ctx.lineTo(xb, M.t + H); ctx.stroke();
+      ctx.restore();
+    }
+
     // 曲线
     ctx.strokeStyle = '#00dcff'; ctx.lineWidth = 1.6; ctx.lineJoin = 'round';
     ctx.beginPath();
@@ -199,6 +215,24 @@
       if (!pen){ ctx.moveTo(px, py); pen = true; } else ctx.lineTo(px, py);
     }
     ctx.stroke();
+
+    // 边界标签放在曲线之上，加一块暗底，别被曲线埋掉
+    if (bound < st.xmax){
+      const xb2 = X(bound), room = M.l + W - xb2;
+      const txt = 'p² = ' + bound + ' 起只能判 n-粗糙数';
+      ctx.save();
+      ctx.font = '11px ui-monospace,Menlo,monospace';
+      const tw = ctx.measureText(txt).width;
+      let tx = room > tw + 24 ? xb2 + 8 : xb2 - tw - 8;
+      tx = Math.max(M.l + 4, Math.min(tx, M.l + W - tw - 4));
+      const ty = M.t + 8;
+      ctx.fillStyle = 'rgba(10,12,20,.78)';
+      ctx.fillRect(tx - 5, ty - 2, tw + 10, 16);
+      ctx.fillStyle = 'rgba(255,160,160,.95)';
+      ctx.textAlign = 'left';
+      ctx.fillText(txt, tx, ty + 11);
+      ctx.restore();
+    }
 
     // 精确零点：曲线上已经包含整数采样点，零点会自然落成一整根竖刺。
     // 线性模式下零点不可见，单独在底部打标记。
@@ -268,7 +302,6 @@
     }
 
     // ---------- 统计（只在 x > 最大已用素数 的范围内判，避免把"素数被自己筛掉"算成错） ----------
-    const pmax = ps[ps.length - 1];
     let zeros = 0;                                   // 只数"被筛掉的合数"；列表里的素数自身也会让 F=0，不算进来
     for (let n = 2; n <= st.xmax; n++) if (isZeroInt(n, ps) && !isPrime(n)) zeros++;
     let ok = 0, tot = 0, leaked = [];
