@@ -9,7 +9,7 @@ F(x) = Π sin(πx/p)     p = 2, 3, 5, 7, ...
 Zero wherever `x` is a multiple of some `p` in the set, non-zero on the primes — so plotting it shows the primes in range.
 
 - `埃氏筛连续数学版本.py` — the original, **179 lines**, Python + `pygame`, kept exactly as written (filename included). No math library: the primes, the product and the scaling are computed in the file itself.
-- `web/index.html` — browser port, single file, open it directly; drag-free sliders for touch
+- `web/index.html` + `web/sieve.js` — browser port; open the HTML directly (no server, no build), drag-free sliders for touch
 
 ```bash
 pip install pygame
