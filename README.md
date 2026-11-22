@@ -4,7 +4,7 @@
 
 Math written by hand.
 
-Every folder holds one piece of work, next to a version you can open in a browser.
+Every folder holds one piece of work: the original written by the author, the browser version beside it ported by an AI assistant.
 
 ---
 
