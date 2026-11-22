@@ -24,7 +24,7 @@ pip install pygame
 python 埃氏筛连续数学版本.py
 ```
 
-ブラウザ版：`web/index.html` を直接開くだけ。同じものはオンラインにもあります：<https://cc.vocalb1.com/static/prime.html>（clone しなくても動きます）。
+ブラウザ版：`web/index.html` を直接開くだけ。同じものはオンラインにもあります：<https://cc.vocalb1.com/static/prime.html>。
 
 ## アイデアの由来
 

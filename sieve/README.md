@@ -24,7 +24,7 @@ pip install pygame
 python 埃氏筛连续数学版本.py
 ```
 
-Browser version: just open `web/index.html`. The same page is online at <https://cc.vocalb1.com/static/prime.html> if you would rather not clone anything.
+Browser version: just open `web/index.html`. The same page is online at <https://cc.vocalb1.com/static/prime.html>.
 
 ## Where the idea came from
 
