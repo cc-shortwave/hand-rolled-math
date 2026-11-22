@@ -4,7 +4,7 @@
 
 Math written by hand.
 
-Every folder holds one piece of work: the Python version written by the author, the browser version beside it ported by an AI assistant.
+Every folder holds one piece of work: the Python version written by the author, the web version ported by an AI assistant.
 
 ---
 
