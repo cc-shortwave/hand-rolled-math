@@ -24,7 +24,7 @@ pip install pygame
 python 埃氏筛连续数学版本.py
 ```
 
-网页版：直接双击 `web/index.html`。
+网页版：直接双击 `web/index.html`。同样的页面也在线上：<https://cc.vocalb1.com/static/prime.html>，不用 clone 就能玩。
 
 ## 想法由来
 
