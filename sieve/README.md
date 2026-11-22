@@ -15,7 +15,7 @@ The program plots that curve and marks the primes it used under it.
 ## Files
 
 - `埃氏筛连续数学版本.py` — the original, **179 lines**, Python + `pygame`, kept exactly as written (filename included). No math library: the primes, the product and the auto-scaling are all computed inside this file — `pygame` only opens a window and draws lines
-- `web/index.html` + `web/sieve.js` — the browser port; open the HTML directly, no server and no build, with sliders instead of drag handles so it works on a phone
+- `web/index.html` + `web/sieve.js` — the browser port; open the HTML directly, no server and no build, with sliders instead of drag handles so it works on a phone; hover any integer to see what that number really is
 
 ## How to run
 

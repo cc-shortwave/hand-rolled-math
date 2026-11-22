@@ -29,6 +29,13 @@ const I18N = {
     rgInvalid: '无效区',
     rgValid: '有效区',
     rgOver: '只能判 n-粗糙数',
+    tipInvalidPrime: '质数 —— 不过在无效区：它自己也在乘数里',
+    tipInvalidComp: '合数 —— p 能整除它',
+    tipValidPrime: '质数 ✓ 判对了',
+    tipValidComp: '合数 —— 被前 n 个质数筛掉',
+    tipOverPrime: '质数 —— 已越过 p²，这里不保证',
+    tipOverComp: '漏网合数 —— 前 n 个质数都除不尽它',
+    tipValue: 'F =',
   },
   en: {
     title: 'Sieving Primes with Sines',
@@ -59,6 +66,13 @@ const I18N = {
     rgInvalid: 'invalid',
     rgValid: 'valid',
     rgOver: 'rough numbers only',
+    tipInvalidPrime: 'prime — but in the invalid band: it is one of the factors itself',
+    tipInvalidComp: 'composite — p divides it',
+    tipValidPrime: 'prime ✓ judged right',
+    tipValidComp: 'composite — sieved out',
+    tipOverPrime: 'prime — past p², not guaranteed here',
+    tipOverComp: 'leaked composite — none of the first n primes divides it',
+    tipValue: 'F =',
   },
   ja: {
     title: '正弦の積で素数をふるい分ける',
@@ -89,6 +103,13 @@ const I18N = {
     rgInvalid: '無効域',
     rgValid: '有効域',
     rgOver: 'n-ラフ数のみ',
+    tipInvalidPrime: '素数 —— ただし無効域：それ自身が積に含まれる',
+    tipInvalidComp: '合成数 —— p で割り切れる',
+    tipValidPrime: '素数 ✓ 正しく判定',
+    tipValidComp: '合成数 —— ふるい落とされた',
+    tipOverPrime: '素数 —— p² の外なので、ここでは保証されない',
+    tipOverComp: '取りこぼした合成数 —— 最初の n 個の素数では割り切れない',
+    tipValue: 'F =',
   },
 };
 
@@ -161,6 +182,10 @@ function isZeroInt(n, ps) {
 // ── 画布 ─────────────────────────────────────────────────────────
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
+const hc = document.getElementById('hint'); // 悬停用的副画布（只画指示，不碰主画布）
+const hx = hc.getContext('2d');
+const tip = document.getElementById('tip');
+let geom = null; // draw() 结束时写入，供悬停用
 let W = 900,
   H = 460; // 逻辑尺寸
 // ?cover=1200x900 → 只留画布铺满窗口，用来出封面图（日常访问不会触发）
@@ -190,6 +215,8 @@ function fitCanvas() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   cv.width = W * dpr;
   cv.height = H * dpr;
+  hc.width = cv.width;
+  hc.height = cv.height;
   cv.style.height = (cv.clientWidth * H) / W + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
@@ -234,6 +261,7 @@ function draw() {
   const Y = v => y0 - (v / maxAbs) * (state.gain / 100) * (plotH / 2);
 
   ctx.clearRect(0, 0, W, H);
+  hideHover(); // 参数一变，旧提示就作废
 
   // ── 三段底纹：无效 x ≤ p ／ 有效 p < x ≤ p² ／ 超界 x > p²
   const xInvalidEnd = X(Math.min(pMax, xMax));
@@ -416,6 +444,76 @@ function draw() {
       : '') +
     (pMax >= xMax ? `<div class="warn">${T('warnNoValid')}</div>` : '') +
     (leaks ? `<div class="warn">${T('warnOver')}</div>` : '');
+
+  geom = { ps, pMax, bound, xMax, X, Y }; // 留给悬停提示用
+}
+
+// ── 悬停说明：指针靠近某个整数时，说清这个数是什么
+function hideHover() {
+  hx.setTransform(1, 0, 0, 1, 0, 0);
+  hx.clearRect(0, 0, hc.width, hc.height);
+  tip.style.display = 'none';
+}
+
+function hoverAt(ev) {
+  if (COVER || !geom) return;
+  const r = cv.getBoundingClientRect();
+  const mx = ((ev.clientX - r.left) / r.width) * W;
+  const my = ((ev.clientY - r.top) / r.height) * H;
+  const { ps, pMax, bound, xMax, X, Y } = geom;
+  const n = Math.round(((mx - PAD.l) / (W - PAD.l - PAD.r)) * xMax);
+  const inPlot = my >= PAD.t - 8 && my <= H - PAD.b + 8;
+  // 容差按屏幕像素算，手机窄屏下也点得中
+  const nearPx = Math.abs(X(n) - mx) * (r.width / W);
+  if (!inPlot || n < 2 || n > xMax || nearPx > 10) return hideHover();
+
+  const zone = n <= pMax ? 0 : n <= bound ? 1 : 2; // 0 无效 / 1 可判 / 2 超界
+  const zeroed = isZeroInt(n, ps);
+  const prime = isPrime(n);
+  const key =
+    zone === 0
+      ? prime
+        ? 'tipInvalidPrime'
+        : 'tipInvalidComp'
+      : zeroed
+        ? 'tipValidComp'
+        : zone === 1
+          ? 'tipValidPrime'
+          : prime
+            ? 'tipOverPrime'
+            : 'tipOverComp';
+  const color = ['#a0aabe', zeroed ? '#ff8f8f' : '#6ee7a8', prime ? '#ffd08a' : '#ff8f8f'][zone];
+  const v = zeroed ? 0 : product(n, ps);
+
+  // 副画布：竖虚线 + 圈出那个点
+  const dpr = hc.width / W;
+  hx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  hx.clearRect(0, 0, W, H);
+  hx.save();
+  hx.strokeStyle = 'rgba(255,255,255,.20)';
+  hx.setLineDash([3, 4]);
+  hx.lineWidth = 1;
+  hx.beginPath();
+  hx.moveTo(X(n), PAD.t);
+  hx.lineTo(X(n), H - PAD.b);
+  hx.stroke();
+  hx.restore();
+  hx.beginPath();
+  hx.arc(X(n), Y(v), 5, 0, Math.PI * 2);
+  hx.strokeStyle = color;
+  hx.lineWidth = 2;
+  hx.stroke();
+
+  // 提示框：横向跟着数走，纵向压在画布上沿，免得盖住曲线
+  tip.innerHTML =
+    `<b>${n}</b><span style="color:${color}">${T(key)}</span>` +
+    `<i>${T('tipValue')} ${v === 0 ? '0' : v.toExponential(2)}</i>`;
+  tip.style.display = 'block';
+  const scale = r.width / W;
+  const sx = X(n) * scale;
+  const half = tip.offsetWidth / 2;
+  tip.style.left = Math.min(Math.max(sx, half + 4), r.width - half - 4) + 'px';
+  tip.style.top = (PAD.t + 6) * scale + 'px';
 }
 
 // ── 深链：#k=4&x=200 之类，方便分享/截图
@@ -442,5 +540,12 @@ applyHash();
     syncHash();
   }),
 );
+
+cv.addEventListener('pointermove', hoverAt);
+cv.addEventListener('pointerdown', hoverAt); // 触屏点一下也能看
+cv.addEventListener('pointerleave', ev => {
+  // 触屏抬手也会触发 pointerleave，那时别急着关
+  if (ev.pointerType !== 'touch') hideHover();
+});
 
 applyLang();

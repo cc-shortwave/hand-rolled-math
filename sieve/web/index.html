@@ -25,6 +25,14 @@
   .stage{position:relative;background:#050810;border:1px solid var(--line);border-radius:12px;
     overflow:hidden}
   canvas{display:block;width:100%;height:auto}
+  #hint{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+  .tip{position:absolute;display:none;transform:translateX(-50%);pointer-events:none;
+    background:rgba(8,12,20,.94);border:1px solid rgba(255,255,255,.16);border-radius:8px;
+    padding:7px 10px;font-size:12px;line-height:1.5;white-space:nowrap;z-index:5;
+    font-variant-numeric:tabular-nums;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+  .tip b{color:#fff;font-size:13px;margin-right:7px}
+  .tip span{color:#8fa6bd}
+  .tip i{display:block;color:#6b7f94;font-style:normal;margin-top:2px}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px;
     backdrop-filter:blur(3px);align-self:start}
   .panel h2{font-size:12px;font-weight:600;color:#a8c6e0;margin:0 0 10px;letter-spacing:.08em;
@@ -70,6 +78,8 @@
 <main>
   <div class="stage">
     <canvas id="cv"></canvas>
+    <canvas id="hint"></canvas>
+    <div id="tip" class="tip"></div>
   </div>
 
   <aside class="panel">
