@@ -1,102 +1,114 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>正弦乘积筛法 · Sine-Product Sieve</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>用正弦乘积筛质数 · Prime Sieve by Sines</title>
 <style>
   :root{
-    --bg:#0b0d12; --panel:#12151d; --line:#232936; --fg:#e7ecf5; --dim:#8a94a8;
-    --cyan:#00dcff; --orange:#ff9626; --red:#c83232; --grid:#1b2130;
+    --bg:#070a12; --panel:rgba(10,16,26,.82); --line:rgba(255,255,255,.12);
+    --fg:#dfe9f3; --dim:#8fa6bd; --cyan:#39e0f0; --green:#6ee7a8;
+    --orange:#ff9a3c; --red:#ff5c5c; --gray:#4a5568;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
-  body{
-    background:var(--bg); color:var(--fg);
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans','Noto Sans CJK SC',sans-serif;
-    padding:18px 16px 28px; -webkit-text-size-adjust:100%;
-  }
-  header{max-width:1180px;margin:0 auto 14px}
-  h1{font-size:19px;margin:0 0 6px;letter-spacing:.5px}
-  h1 small{color:var(--dim);font-weight:400;font-size:13px;margin-left:8px}
-  .formula{color:var(--cyan);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;
-    background:#0e1420;border:1px solid var(--line);border-radius:8px;padding:8px 12px;display:inline-block;margin:6px 0}
-  .note{color:var(--dim);font-size:12.5px;line-height:1.65;margin:8px 0 0;max-width:760px}
-  .wrap{max-width:1180px;margin:0 auto}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-  canvas{width:100%;display:block;border-radius:8px;background:#080a0f;touch-action:pan-y}
-  .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px 20px;margin:12px 0}
-  .ctl label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--dim);margin-bottom:4px}
-  .ctl label b{color:var(--fg);font-variant-numeric:tabular-nums}
-  input[type=range]{width:100%;accent-color:#00dcff;height:22px}
-  .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
-  .chip{border:1px solid var(--line);background:#0e1420;color:var(--dim);border-radius:999px;
-    padding:5px 12px;font-size:12.5px;cursor:pointer;user-select:none}
-  .chip[aria-pressed=true]{color:#04121a;background:var(--cyan);border-color:var(--cyan);font-weight:600}
-  .stats{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:12.5px;color:var(--dim);margin-top:8px}
-  .stats b{color:var(--fg);font-variant-numeric:tabular-nums}
-  .warn{color:#ffb84d}
-  .bound-hint{color:#ff8f8f;font-size:12px;margin-left:6px;opacity:.9}
-  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--dim);margin-top:10px}
-  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
-  footer{max-width:1180px;margin:16px auto 0;color:#5f6a7d;font-size:12px;line-height:1.7}
-  @media (max-width:520px){ h1{font-size:16px} .formula{font-size:12px} }
+  html,body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  header{padding:22px 20px 6px;max-width:1180px;margin:0 auto}
+  h1{margin:0;font-size:20px;font-weight:600;letter-spacing:.02em}
+  .sub{color:var(--dim);font-size:12.5px;margin-top:6px;line-height:1.6}
+  .formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--cyan);
+    font-size:13.5px;margin-top:8px}
+  main{max-width:1180px;margin:0 auto;padding:14px 20px 40px;display:grid;
+    grid-template-columns:1fr 268px;gap:16px}
+  @media (max-width:820px){ main{grid-template-columns:1fr} }
+  .stage{position:relative;background:#050810;border:1px solid var(--line);border-radius:12px;
+    overflow:hidden}
+  canvas{display:block;width:100%;height:auto}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px;
+    backdrop-filter:blur(3px);align-self:start}
+  .panel h2{font-size:12px;font-weight:600;color:#a8c6e0;margin:0 0 10px;letter-spacing:.08em;
+    text-transform:uppercase}
+  .ctl{margin-bottom:14px}
+  .ctl label{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-bottom:6px}
+  .ctl label b{color:var(--fg);font-variant-numeric:tabular-nums;font-weight:600}
+  .cap{display:block;color:#ff8f8f;font-size:11.5px;font-variant-numeric:tabular-nums;margin-top:5px}
+  input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;
+    background:rgba(255,255,255,.14);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+    border-radius:50%;background:var(--cyan);cursor:pointer;box-shadow:0 0 0 3px rgba(57,224,240,.18)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border:none;border-radius:50%;
+    background:var(--cyan);cursor:pointer}
+  .stats{font-size:12px;line-height:1.9;color:#a8c6e0;font-variant-numeric:tabular-nums}
+  .stats b{color:var(--green);font-weight:600}
+  .stats .warn{color:var(--orange)}
+  .hr{height:1px;background:rgba(255,255,255,.1);margin:12px 0}
+  .legend{font-size:11.5px;line-height:1.9;color:var(--dim)}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;
+    vertical-align:1px}
+  .hint{font-size:11px;color:#6b7f94;line-height:1.6;margin-top:10px}
+  .langs{position:fixed;top:12px;right:16px;z-index:20}
+  .langs button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+    color:#999;padding:4px 10px;margin-left:4px;border-radius:4px;cursor:pointer;font-size:12px}
+  .langs button.active{color:#fff;border-color:#66aaff;background:rgba(102,170,255,.15)}
 </style>
 </head>
 <body>
-<header>
-  <h1>正弦乘积筛法 <small>Sine-Product Sieve · CC, 2026</small></h1>
-  <div class="formula">F(x) = &prod;<sub>p&le;p<sub>k</sub></sub> sin(&pi;x / p)</div>
-  <p class="note">
-    每个 <code>sin(&pi;x/p)</code> 在 <b>p 的倍数</b>处为零 —— 乘积把所有“被用到的素数的倍数”一起压成零。
-    这正是埃氏筛“划掉倍数”的连续版本：<b>零点集 = 被筛掉的那一堆</b>。
-  </p>
-</header>
 
-<div class="wrap">
-  <div class="panel">
-    <canvas id="cv" height="420"></canvas>
-    <div class="controls">
-      <div class="ctl">
-        <label>素数个数 k <b id="vk">10</b> <span id="vb" class="bound-hint">可判到 841</span></label>
-        <input id="k" type="range" min="1" max="45" value="10" step="1">
-      </div>
-      <div class="ctl">
-        <label>横轴上限 x <b id="vx">120</b></label>
-        <input id="xmax" type="range" min="20" max="600" value="120" step="10">
-      </div>
-      <div class="ctl">
-        <label>纵向增益（线性模式） <b id="vg">1.0×</b></label>
-        <input id="gain" type="range" min="0.2" max="3" value="1" step="0.1">
-      </div>
-    </div>
-    <div class="row">
-      <button class="chip" id="mLog"  aria-pressed="true">纵轴 log|F|</button>
-      <button class="chip" id="mLin"  aria-pressed="false">纵轴 线性</button>
-      <button class="chip" id="tPrime" aria-pressed="true">素数刻度</button>
-      <button class="chip" id="tZeros" aria-pressed="true">零点（筛掉的数）</button>
-    </div>
-    <div class="stats">
-      <span>用到 <b id="sPrimes">—</b></span>
-      <span>筛掉的合数 <b id="sZeros">—</b></span>
-      <span>判对 <b id="sOk">—</b> / <b id="sTot">—</b></span>
-      <span id="sWarn" class="warn"></span>
-    </div>
-    <div class="legend">
-      <span><i style="background:#00dcff"></i>F(x)</span>
-      <span><i style="background:#ff9626"></i>素数</span>
-      <span><i style="background:#c83232"></i>合数</span>
-      <span><i style="background:#00dcff"></i>向下的尖刺 = F 归零 = 该整数被筛掉</span>
-      <span>底部色条：<i style="background:rgba(0,220,255,.5)"></i>筛掉 <i style="background:rgba(255,150,38,1)"></i>素数 <i style="background:rgba(200,50,50,.9)"></i>漏过的合数</span>
-    </div>
-  </div>
+<div class="langs">
+  <button data-lang="zh">中文</button>
+  <button data-lang="en">English</button>
+  <button data-lang="ja">日本語</button>
 </div>
 
-<footer>
-  <b>为什么要有 log 模式：</b>F(x) 的幅值随 k 指数衰减（k=20 时 F(1)≈1e-17，k=45 时 ≈1e-58），
-  线性刻度下整条曲线会贴地看不出形状 —— 这不是公式错，是乘积本身的性质。
-  原程序用 <code>autoMaxAbs</code> 自动缩放来对抗它；换对数轴可以直接看清零点的位置。
-</footer>
+<header>
+  <h1 data-t="title">用正弦乘积筛质数</h1>
+  <p class="sub" data-t="sub">每一个 sin(πx/p) 的零点都落在 p 的倍数上。把前 n 个质数的正弦乘起来，零点的集合就是"能被这些小质数整除的数"。剩下不为零的地方，就是质数。</p>
+  <p class="formula">f(x) = sin(πx/2) · sin(πx/3) · sin(πx/5) · … · sin(πx/p<sub>n</sub>)</p>
+</header>
+
+<main>
+  <div class="stage">
+    <canvas id="cv"></canvas>
+  </div>
+
+  <aside class="panel">
+    <h2 data-t="controls">参数</h2>
+
+    <div class="ctl">
+      <label><span data-t="primeCount">参与相乘的质数个数</span><b id="vN">10</b></label>
+      <input type="range" id="sN" min="1" max="45" value="10" step="1">
+      <span class="cap" id="vBound"></span>
+    </div>
+
+    <div class="ctl">
+      <label><span data-t="xRange">横轴范围</span><b id="vX">70</b></label>
+      <input type="range" id="sX" min="10" max="200" value="70" step="1">
+    </div>
+
+    <div class="ctl">
+      <label><span data-t="ygain">纵向增益</span><b id="vY">1.0×</b></label>
+      <input type="range" id="sY" min="10" max="300" value="100" step="5">
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="hr"></div>
+
+    <div class="legend">
+      <div><i style="background:var(--gray)"></i><span data-t="lgInvalid">无效区 x ≤ p：质数被自己筛掉</span></div>
+      <div><i style="background:var(--cyan)"></i><span data-t="lgValid">有效区 p &lt; x ≤ p²：这里才分得出质数</span></div>
+      <div><i style="background:var(--red)"></i><span data-t="lgOver">超界区 x &gt; p²：只能判 n-粗糙数</span></div>
+      <div><i style="background:var(--orange)"></i><span data-t="lgUsed">已参与相乘的质数</span></div>
+      <div><i style="background:var(--red)"></i><span data-t="lgUnused">视野内但没参与相乘的质数</span></div>
+      <div><i style="background:var(--green)"></i><span data-t="lgDetected">被曲线判定出来的质数</span></div>
+    </div>
+
+    <p class="hint" data-t="hint">把「质数个数」往下拉，可判上限 p² 会跟着往左移；在有效区里，曲线不为零的位置正好是质数。</p>
+  </aside>
+</main>
 
 <script src="sieve.js"></script>
 </body>
