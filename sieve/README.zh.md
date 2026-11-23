@@ -5,7 +5,7 @@
 每个素数配一个正弦，全部相乘：
 
 $$
-F(x) \;=\; \prod_{p \in \{2,\,3,\,5,\,\dots\}} \sin\!\left(\frac{\pi x}{p}\right)
+F(x) = \prod_{p \in \lbrace 2, 3, 5, \dots \rbrace} \sin\left(\frac{\pi x}{p}\right)
 $$
 
 `x` 是 `p` 的整数倍时，那一项正好为零 —— 所以只要 `x` 被列表里某个素数整除，整个乘积就归零。

@@ -5,7 +5,7 @@
 素数ごとに正弦を 1 つ、すべて掛ける：
 
 $$
-F(x) \;=\; \prod_{p \in \{2,\,3,\,5,\,\dots\}} \sin\!\left(\frac{\pi x}{p}\right)
+F(x) = \prod_{p \in \lbrace 2, 3, 5, \dots \rbrace} \sin\left(\frac{\pi x}{p}\right)
 $$
 
 `x` が `p` の倍数のとき、その項はちょうど 0 になる —— つまりリストの中のどれか 1 つの素数で `x` が割り切れれば、積全体が 0 になる。

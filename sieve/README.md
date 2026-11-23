@@ -5,7 +5,7 @@
 Multiply one sine per prime:
 
 $$
-F(x) \;=\; \prod_{p \in \{2,\,3,\,5,\,\dots\}} \sin\!\left(\frac{\pi x}{p}\right)
+F(x) = \prod_{p \in \lbrace 2, 3, 5, \dots \rbrace} \sin\left(\frac{\pi x}{p}\right)
 $$
 
 Every factor is zero exactly where `x` is a multiple of `p` — so as soon as `x` is divisible by any prime in the list, the whole product vanishes.
